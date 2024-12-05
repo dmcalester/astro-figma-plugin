@@ -1,21 +1,19 @@
-// code.ts
-figma.showUI(__html__, { width: 300, height: 400 });
+figma.showUI(__html__, { width: 400, height: 600 });
 
-// Listen for messages from the UI
-figma.ui.onmessage = (msg) => {
-  if (msg.type === 'create-rectangles') {
+// Handle messages from the UI
+figma.ui.onmessage = async (msg) => {
+  if (msg.type === "generate-errors") {
     const nodes: SceneNode[] = [];
-    for (let i = 0; i < 3; i++) {
-      const rect = figma.createRectangle();
-      rect.x = i * 150;
-      rect.fills = [{type: 'SOLID', color: {r: 1, g: 0.5, b: 0}}];
-      figma.currentPage.appendChild(rect);
-      nodes.push(rect);
-    }
-    figma.currentPage.selection = nodes;
+    const text = figma.createText();
+    text.characters = msg.errorList;
+
+    // Set font
+    await figma.loadFontAsync({ family: "Inter", style: "Regular" });
+    text.fontSize = 14;
+    text.lineHeight = { value: 20, unit: "PIXELS" };
+
+    nodes.push(text);
+    figma.currentPage.appendChild(text);
     figma.viewport.scrollAndZoomIntoView(nodes);
   }
-
-  // Uncomment this if you want to close the plugin when a message is received
-  // figma.closePlugin();
 };

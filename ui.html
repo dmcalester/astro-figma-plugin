@@ -1,33 +1,141 @@
-// ui.html
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <style>
-    body {
-      font-family: Inter, sans-serif;
-      padding: 20px;
-    }
-    button {
-      background-color: #18A0FB;
-      color: white;
-      border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
-      cursor: pointer;
-    }
-    button:hover {
-      background-color: #1089d9;
-    }
-  </style>
-</head>
-<body>
-  <h2>My Figma Plugin</h2>
-  <p>This is a basic plugin interface that we can expand later.</p>
-  <button id="create">Create Rectangles</button>
-  <script>
-    document.getElementById('create').onclick = () => {
-      parent.postMessage({ pluginMessage: { type: 'create-rectangles' } }, '*')
-    }
-  </script>
-</body>
+    <head>
+        <style>
+            body {
+                font-family: Inter, sans-serif;
+                padding: 20px;
+            }
+            .container {
+                display: flex;
+                flex-direction: column;
+                gap: 16px;
+            }
+            .output {
+                border: 1px solid #ccc;
+                border-radius: 6px;
+                padding: 12px;
+                min-height: 200px;
+                margin-top: 12px;
+                white-space: pre-line;
+            }
+            .input-group {
+                display: flex;
+                flex-direction: column;
+                gap: 8px;
+            }
+            input {
+                padding: 8px;
+                border: 1px solid #ccc;
+                border-radius: 4px;
+                font-size: 14px;
+            }
+            button {
+                background-color: #18a0fb;
+                color: white;
+                border: none;
+                padding: 8px 16px;
+                border-radius: 6px;
+                cursor: pointer;
+            }
+            button:hover {
+                background-color: #1089d9;
+            }
+            button:disabled {
+                background-color: #ccc;
+                cursor: not-allowed;
+            }
+            .error {
+                color: #ff4444;
+                font-size: 14px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h2>Space Vehicle Error Generator</h2>
+
+            <div class="input-group">
+                <label for="apiKey">AskSage API Key</label>
+                <input
+                    type="password"
+                    id="apiKey"
+                    placeholder="Enter your API key"
+                />
+                <small
+                    >Your API key is never stored and only used for the current
+                    session</small
+                >
+                <small id="error" class="error"></small>
+            </div>
+
+            <div id="output" class="output">
+                Generated errors will appear here...
+            </div>
+            <button id="generate" disabled>Generate Errors</button>
+        </div>
+
+        <script>
+            const BASE_URL = "https://api.asksage.ai/server";
+            const apiKeyInput = document.getElementById("apiKey");
+            const generateButton = document.getElementById("generate");
+            const errorElement = document.getElementById("error");
+
+            apiKeyInput.addEventListener("input", (e) => {
+                generateButton.disabled = !e.target.value;
+            });
+
+            async function queryAskSage(apiKey) {
+                try {
+                    errorElement.textContent = "";
+                    const response = await fetch(`${BASE_URL}/query`, {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json",
+                            "x-access-tokens": apiKey,
+                        },
+                        body: JSON.stringify({
+                            message:
+                                "Generate a numbered list of 5 realistic and technical space vehicle error messages that could occur during a mission. Include error codes.",
+                            model: "gpt4",
+                        }),
+                    });
+
+                    if (!response.ok) {
+                        throw new Error("Invalid API key or network error");
+                    }
+
+                    const data = await response.json();
+                    return data.message;
+                } catch (error) {
+                    errorElement.textContent = error.message;
+                    return "Error generating content. Please check your API key and try again.";
+                }
+            }
+
+            document.getElementById("generate").onclick = async () => {
+                const apiKey = apiKeyInput.value;
+                if (!apiKey) {
+                    errorElement.textContent = "Please enter an API key";
+                    return;
+                }
+
+                const output = document.getElementById("output");
+                output.textContent = "Generating...";
+
+                const errorList = await queryAskSage(apiKey);
+                output.textContent = errorList;
+
+                parent.postMessage(
+                    {
+                        pluginMessage: {
+                            type: "generate-errors",
+                            errorList,
+                        },
+                    },
+                    "*",
+                );
+            };
+        </script>
+    </body>
 </html>
