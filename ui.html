@@ -52,90 +52,132 @@
         </style>
     </head>
     <body>
-        <div class="container">
-            <h2>Space Vehicle Error Generator</h2>
+      <div class="container">
+          <h2>Space Vehicle Error Generator</h2>
 
-            <div class="input-group">
-                <label for="apiKey">AskSage API Key</label>
-                <input
-                    type="password"
-                    id="apiKey"
-                    placeholder="Enter your API key"
-                />
-                <small
-                    >Your API key is never stored and only used for the current
-                    session</small
-                >
-                <small id="error" class="error"></small>
-            </div>
+          <div id="apiKeyInput" class="input-group" style="display: none;">
+              <label for="apiKey">AskSage API Key</label>
+              <input
+                  type="password"
+                  id="apiKey"
+                  placeholder="Enter your API key"
+              />
+              <small>Your API key will be securely stored for future use</small>
+              <small id="error" class="error"></small>
+              <button id="saveApiKey">Save API Key</button>
+          </div>
 
-            <div id="output" class="output">
-                Generated errors will appear here...
-            </div>
-            <button id="generate" disabled>Generate Errors</button>
-        </div>
+          <div id="mainUI" style="display: none;">
+              <div id="output" class="output">
+                  Generated errors will appear here...
+              </div>
+              <button id="generate">Generate Errors</button>
+          </div>
+      </div>
 
-        <script>
-            const BASE_URL = "https://api.asksage.ai/server";
-            const apiKeyInput = document.getElementById("apiKey");
-            const generateButton = document.getElementById("generate");
-            const errorElement = document.getElementById("error");
+      <script>
+          const BASE_URL = "https://api.asksage.ai/server";
+          const apiKeyInput = document.getElementById("apiKey");
+          const generateButton = document.getElementById("generate");
+          const errorElement = document.getElementById("error");
+          const apiKeyInputDiv = document.getElementById("apiKeyInput");
+          const mainUIDiv = document.getElementById("mainUI");
+          const saveApiKeyButton = document.getElementById("saveApiKey");
 
-            apiKeyInput.addEventListener("input", (e) => {
-                generateButton.disabled = !e.target.value;
-            });
+          // Obfuscation functions
+          function obfuscate(str) {
+              return btoa(str.split('').reverse().join(''));
+          }
 
-            async function queryAskSage(apiKey) {
-                try {
-                    errorElement.textContent = "";
-                    const response = await fetch(`${BASE_URL}/query`, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            "x-access-tokens": apiKey,
-                        },
-                        body: JSON.stringify({
-                            message:
-                                "Generate a numbered list of 5 realistic and technical space vehicle error messages that could occur during a mission. Include error codes.",
-                            model: "gpt4",
-                        }),
-                    });
+          function deobfuscate(str) {
+              return atob(str).split('').reverse().join('');
+          }
 
-                    if (!response.ok) {
-                        throw new Error("Invalid API key or network error");
-                    }
+          // Check for stored API key on load
+          window.onload = async () => {
+              parent.postMessage({ pluginMessage: { type: 'getApiKey' } }, '*');
+          };
 
-                    const data = await response.json();
-                    return data.message;
-                } catch (error) {
-                    errorElement.textContent = error.message;
-                    return "Error generating content. Please check your API key and try again.";
-                }
-            }
+          // Listen for messages from the plugin
+          window.onmessage = async (event) => {
+              if (event.data.pluginMessage.type === 'apiKeyResult') {
+                  const storedApiKey = event.data.pluginMessage.apiKey;
+                  if (storedApiKey) {
+                      showMainUI(deobfuscate(storedApiKey));
+                  } else {
+                      showApiKeyInput();
+                  }
+              }
+          };
 
-            document.getElementById("generate").onclick = async () => {
-                const apiKey = apiKeyInput.value;
-                if (!apiKey) {
-                    errorElement.textContent = "Please enter an API key";
-                    return;
-                }
+          function showApiKeyInput() {
+              apiKeyInputDiv.style.display = 'block';
+              mainUIDiv.style.display = 'none';
+          }
 
-                const output = document.getElementById("output");
-                output.textContent = "Generating...";
+          function showMainUI(apiKey) {
+              apiKeyInputDiv.style.display = 'none';
+              mainUIDiv.style.display = 'block';
+              generateButton.onclick = () => generateErrors(apiKey);
+          }
 
-                const errorList = await queryAskSage(apiKey);
-                output.textContent = errorList;
+          saveApiKeyButton.onclick = async () => {
+              const apiKey = apiKeyInput.value;
+              if (!apiKey) {
+                  errorElement.textContent = "Please enter an API key";
+                  return;
+              }
 
-                parent.postMessage(
-                    {
-                        pluginMessage: {
-                            type: "generate-errors",
-                            errorList,
-                        },
-                    },
-                    "*",
-                );
-            };
-        </script>
-    </body>
+              const obfuscatedKey = obfuscate(apiKey);
+              parent.postMessage({ pluginMessage: { type: 'setApiKey', apiKey: obfuscatedKey } }, '*');
+              showMainUI(apiKey);
+          };
+
+          async function queryAskSage(apiKey) {
+              try {
+                  errorElement.textContent = "";
+                  const response = await fetch(`${BASE_URL}/query`, {
+                      method: "POST",
+                      headers: {
+                          "Content-Type": "application/json",
+                          "x-access-tokens": apiKey,
+                      },
+                      body: JSON.stringify({
+                          message:
+                              "Generate a numbered list of 5 realistic and technical space vehicle error messages that could occur during a mission. Include error codes.",
+                          model: "gpt4",
+                      }),
+                  });
+
+                  if (!response.ok) {
+                      throw new Error("Invalid API key or network error");
+                  }
+
+                  const data = await response.json();
+                  return data.message;
+              } catch (error) {
+                  errorElement.textContent = error.message;
+                  return "Error generating content. Please check your API key and try again.";
+              }
+          }
+
+          async function generateErrors(apiKey) {
+              const output = document.getElementById("output");
+              output.textContent = "Generating...";
+
+              const errorList = await queryAskSage(apiKey);
+              output.textContent = errorList;
+
+              parent.postMessage(
+                  {
+                      pluginMessage: {
+                          type: "generate-errors",
+                          errorList,
+                      },
+                  },
+                  "*"
+              );
+          }
+      </script>
+  </body>
 </html>
