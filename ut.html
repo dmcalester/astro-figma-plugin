@@ -1,0 +1,33 @@
+// ui.html
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    body {
+      font-family: Inter, sans-serif;
+      padding: 20px;
+    }
+    button {
+      background-color: #18A0FB;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #1089d9;
+    }
+  </style>
+</head>
+<body>
+  <h2>My Figma Plugin</h2>
+  <p>This is a basic plugin interface that we can expand later.</p>
+  <button id="create">Create Rectangles</button>
+  <script>
+    document.getElementById('create').onclick = () => {
+      parent.postMessage({ pluginMessage: { type: 'create-rectangles' } }, '*')
+    }
+  </script>
+</body>
+</html>

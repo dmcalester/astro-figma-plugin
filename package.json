@@ -1,0 +1,16 @@
+{
+  "name": "astro-test-plugin",
+  "version": "0.0.1",
+  "description": "A Figma plugin scaffold",
+  "main": "code.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch"
+  },
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "@figma/plugin-typings": "^1.64.0",
+    "typescript": "^4.9.5"
+  }
+}
